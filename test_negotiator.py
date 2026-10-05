@@ -17,8 +17,10 @@ from selfplay.entry import PoolEntry
 
 
 AGENTS = ("Boulware", "Linear", "Conceder", "Atlas3", "CUHKAgent")
-DOMAINS = ("Laptop", "ItexvsCypress", "IS_BT_Acquisition", "Grocery",
-           "thompson", "Car", "EnergySmall_A")
+KNOWN_DOMAINS = ("Laptop", "ItexvsCypress", "IS_BT_Acquisition", "Grocery",
+                 "thompson", "Car", "EnergySmall_A")
+UNKNOWN_DOMAINS = ("Coffee", "Camera", "Lunch", "SmartPhone", "Kitchen")
+DOMAINS = KNOWN_DOMAINS + UNKNOWN_DOMAINS
 
 
 def sha256(path):
@@ -61,6 +63,11 @@ def resolve_checkpoint(value):
     return path
 
 
+def validate_domain_compatibility(config, domain):
+    if config["model_type"] == "expert" and domain not in config["issues"]:
+        raise ValueError(f"Checkpoint is not compatible with domain {domain}")
+
+
 def evaluate(args):
     checkpoint = resolve_checkpoint(args.model)
     model_dir = checkpoint.parent
@@ -68,8 +75,7 @@ def evaluate(args):
     if not config_path.is_file():
         raise FileNotFoundError(f"Missing model config: {config_path}")
     config = json.loads(config_path.read_text(encoding="utf-8"))
-    if args.domain not in config["issues"]:
-        raise ValueError(f"Checkpoint is not compatible with domain {args.domain}")
+    validate_domain_compatibility(config, args.domain)
     if args.case != config["case"]:
         raise ValueError(f"Checkpoint case is {config['case']}, not {args.case}")
     if int(args.n_actions) != int(config["n_actions"]):

@@ -124,6 +124,48 @@ DRY_RUN=1 ./run_command/train_cases1_to3_expert.sh
 `RESUME=1` のときだけ再開します。評価済みデータは行数ではなくmanifest中のcheckpoint
 hash、seed、case、条件、episode数で検証します。
 
+### case1〜3の本実験
+
+`run_case_experiments.sh`は、seed 0でexpert 210モデル（3 cases × 7 domains ×
+10 opponent pairs）とgeneral 3モデルを生成します。expertは100,000 steps、generalは
+既知7ドメインをまとめて300,000 steps学習します。RLBOA固有のPPO設定は既定で
+`n_envs=4`, `n_steps=500`, `batch_size=64`, `n_epochs=10`です。
+
+```bash
+# 生成されるコマンドの確認
+DRY_RUN=1 ./run_command/run_case_experiments.sh
+
+# 3 GPU用コンテナを起動済みの場合
+GPU_IDS="0 1 2" \
+CONTAINER_NAMES="selfplay-rlboa-training-gpu0 selfplay-rlboa-training-gpu1 selfplay-rlboa-training-gpu2" \
+./run_command/launch_case_experiments_tmux.sh
+
+tmux attach -t selfplay-rlboa-cases
+```
+
+3 GPUではjob indexを3で割った余りにより静的shardingし、各GPUが71モデルを担当します。
+これは1モデルを複数GPUで学習するDDPではなく、独立モデルのジョブレベル並列です。
+完了済みcheckpointはskipし、未完了checkpointは累積目標stepまでresumeします。
+
+全学習完了後の評価はexpert 210条件とgeneral 360条件（3 cases × 12 domains ×
+10 opponent pairs）の合計570条件、各100 episodesです。generalの12ドメインには既知7件と
+未知5件（Coffee, Camera, Lunch, SmartPhone, Kitchen）を含みます。
+
+```bash
+DRY_RUN=1 ./run_command/evaluate_case_experiments.sh
+
+MODE=eval GPU_IDS="0 1 2" \
+CONTAINER_NAMES="selfplay-rlboa-training-gpu0 selfplay-rlboa-training-gpu1 selfplay-rlboa-training-gpu2" \
+./run_command/launch_case_experiments_tmux.sh
+
+tmux attach -t selfplay-rlboa-eval
+```
+
+実験条件は`RESULTS_ROOT`, `SEED`, `EXPERT_TIMESTEPS`, `GENERAL_TIMESTEPS`,
+`N_ENVS`, `N_STEPS`, `BATCH_SIZE`, `N_EPOCHS`で変更できます。評価は`EPISODES`,
+`FORCE`で変更できます。両スクリプトとも`SHARD_INDEX`と`SHARD_COUNT`を直接指定して
+Dockerやtmuxを使わず実行することもできます。
+
 ## 保存構造
 
 ```text

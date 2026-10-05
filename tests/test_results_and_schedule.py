@@ -2,6 +2,7 @@ import csv
 
 from results import FIELDS, result_path, write_results
 from selfplay.evaluator import balanced_schedule, evaluation_seed
+from test_negotiator import parse_args as parse_evaluation_args, validate_domain_compatibility
 from train import parse_args
 
 
@@ -41,3 +42,23 @@ def test_result_path_is_inside_model_csv(tmp_path):
         tmp_path / "csv" / "Boulware-Linear" / "Laptop" /
         "det=False_noise=False" / "Laptop-Boulware-Linear-dF-nF.tsv"
     )
+
+
+def test_unknown_domains_are_accepted_only_for_general_evaluation():
+    args = parse_evaluation_args([
+        "--model", "unused", "--domain", "Coffee",
+        "--opponent1", "Boulware", "--opponent2", "Linear",
+        "--model-type", "general",
+    ])
+    assert args.domain == "Coffee"
+    validate_domain_compatibility(
+        {"model_type": "general", "issues": ["Laptop"]}, "Coffee"
+    )
+    try:
+        validate_domain_compatibility(
+            {"model_type": "expert", "issues": ["Laptop"]}, "Coffee"
+        )
+    except ValueError:
+        pass
+    else:
+        raise AssertionError("expert checkpoint accepted an unseen domain")
