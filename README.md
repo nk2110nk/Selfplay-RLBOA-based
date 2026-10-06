@@ -99,7 +99,8 @@ checkpointとtraining-stateのstep整合性を検証します。
 <model_dir>/csv/<opponent1>-<opponent2>/<domain>/det=False_noise=False/*.tsv
 ```
 
-`--export-root` を指定した場合のみ、従来の集計用`evaluation/`にもコピーします。
+`--export-root`を指定した場合のみ、`<export-root>/<model-type>/<pair>/<domain>/<case>/`
+へ集計用TSVとmanifestをコピーします。
 
 ## 一括スクリプト
 
@@ -135,17 +136,17 @@ hash、seed、case、条件、episode数で検証します。
 # 生成されるコマンドの確認
 DRY_RUN=1 ./run_command/run_case_experiments.sh
 
-# 3 GPU用コンテナを起動済みの場合
-GPU_IDS="0 1 2" \
-CONTAINER_NAMES="selfplay-rlboa-training-gpu0 selfplay-rlboa-training-gpu1 selfplay-rlboa-training-gpu2" \
+# このサーバーの2 GPU用コンテナを起動済みの場合
 ./run_command/launch_case_experiments_tmux.sh
 
 tmux attach -t selfplay-rlboa-cases
 ```
 
-3 GPUではjob indexを3で割った余りにより静的shardingし、各GPUが71モデルを担当します。
+既定の2 GPUではjob indexを2で割った余りにより静的shardingします。
 これは1モデルを複数GPUで学習するDDPではなく、独立モデルのジョブレベル並列です。
 完了済みcheckpointはskipし、未完了checkpointは累積目標stepまでresumeします。
+GPUを3枚使う別サーバーでは`GPU_IDS`と`CONTAINER_NAMES`へ3件ずつ指定すると、
+各GPUが71モデルを担当します。
 
 全学習完了後の評価はexpert 210条件とgeneral 360条件（3 cases × 12 domains ×
 10 opponent pairs）の合計570条件、各100 episodesです。generalの12ドメインには既知7件と
@@ -154,9 +155,7 @@ tmux attach -t selfplay-rlboa-cases
 ```bash
 DRY_RUN=1 ./run_command/evaluate_case_experiments.sh
 
-MODE=eval GPU_IDS="0 1 2" \
-CONTAINER_NAMES="selfplay-rlboa-training-gpu0 selfplay-rlboa-training-gpu1 selfplay-rlboa-training-gpu2" \
-./run_command/launch_case_experiments_tmux.sh
+MODE=eval ./run_command/launch_case_experiments_tmux.sh
 
 tmux attach -t selfplay-rlboa-eval
 ```
@@ -168,8 +167,11 @@ Dockerやtmuxを使わず実行することもできます。
 
 ## 保存構造
 
+本実験スクリプトはTransformer版と同じく、学習済みモデルと最終評価結果を
+`models/`と`evaluation/`へ分離します。
+
 ```text
-results/seed-<seed>/<case>/models/<expert|general>/<pair>/<domain>/RLBOASelfPlay_Negotiator/
+results/<case>/models/expert/<pair>/<domain>/RLBOASelfPlay_Negotiator/
   checkpoint.zip
   training_state.pt
   config.json
@@ -181,10 +183,12 @@ results/seed-<seed>/<case>/models/<expert|general>/<pair>/<domain>/RLBOASelfPlay
   evaluation/step-10000.tsv
   csv/
 
-results/seed-<seed>/<case>/evaluation/<expert|general>/<pair>/<domain>/<case>/
+results/<case>/models/general/RLBOASelfPlay_Negotiator/
+results/<case>/evaluation/<expert|general>/<pair>/<domain>/<case>/
 ```
 
-別seedは別directoryへ保存され、上書きしません。`checkpoint.zip` はSB3 modelとoptimizer、
+本実験はseed 0固定です。通常の`train.py`を`results`へ直接実行した場合は、従来どおり
+`results/seed-<seed>/<case>/...`を使用します。`checkpoint.zip` はSB3 modelとoptimizer、
 `training_state.pt` はcumulative step、config、pool metadata、RNG、次回評価/snapshot stepを
 保持し、進行中の各NegMAS sessionとSB3の最終観測も保存します。pool中のsnapshot pathは
 model directoryからの相対pathです。これによりrollout境界での中断・再開は、同じ依存環境
@@ -196,6 +200,16 @@ resumeは拒否します。`--pool-path`はmodel directory内部だけを許可�
 ```bash
 python -m pytest -q
 ```
+
+RTX 5090環境では専用イメージを使用します。
+
+```bash
+./run_command/prepare_cuda128_containers.sh
+```
+
+この準備スクリプトは`selfplay-rlboa:cu128`を必要に応じてbuildし、GPU 0/1専用の
+`selfplay-rlboa-training-gpu0`, `selfplay-rlboa-training-gpu1`を待機状態で作ります。
+学習や評価は開始しません。
 
 ## 既知の制約
 

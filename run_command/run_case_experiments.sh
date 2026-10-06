@@ -76,7 +76,7 @@ run_training() {
     echo "[job $job_index] resume ($step/$target): $model_dir"
   else
     command=("$PYTHON_BIN" train.py "$@" --total-timesteps "$target"
-             --device "$DEVICE" --save-path "$RESULTS_ROOT")
+             --device "$DEVICE" --save-path "$model_dir")
     echo "[job $job_index] start (0/$target): $model_dir"
   fi
 
@@ -108,7 +108,6 @@ common_args=(
 
 job_index=0
 handled_jobs=0
-general_pair="$(IFS=-; echo "${AGENT_LIST[*]}")"
 
 for case_name in "${CASE_LIST[@]}"; do
   case "$case_name" in
@@ -122,7 +121,7 @@ for case_name in "${CASE_LIST[@]}"; do
         agent0="${AGENT_LIST[$i]}"
         agent1="${AGENT_LIST[$j]}"
         pair="$agent0-$agent1"
-        model_dir="$RESULTS_ROOT/seed-$SEED/$case_name/models/expert/$pair/$domain/RLBOASelfPlay_Negotiator"
+        model_dir="$RESULTS_ROOT/$case_name/models/expert/$pair/$domain/RLBOASelfPlay_Negotiator"
         duplicate_option=(--allow-duplicate-opponents)
         if [[ "$agent0" != "$agent1" ]]; then
           duplicate_option=(--no-allow-duplicate-opponents)
@@ -136,7 +135,7 @@ for case_name in "${CASE_LIST[@]}"; do
     done
   done
 
-  model_dir="$RESULTS_ROOT/seed-$SEED/$case_name/models/general/$general_pair/general/RLBOASelfPlay_Negotiator"
+  model_dir="$RESULTS_ROOT/$case_name/models/general/RLBOASelfPlay_Negotiator"
   run_training "$job_index" "$model_dir" "$GENERAL_TIMESTEPS" \
     --agents "${AGENT_LIST[@]}" --issue "${KNOWN_DOMAINS[@]}" \
     --model-type general --case "$case_name" --allow-duplicate-opponents \

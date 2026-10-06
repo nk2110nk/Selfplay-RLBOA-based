@@ -3,7 +3,7 @@ import csv
 from results import FIELDS, result_path, write_results
 from selfplay.evaluator import balanced_schedule, evaluation_seed
 from test_negotiator import parse_args as parse_evaluation_args, validate_domain_compatibility
-from train import parse_args
+from train import model_directory, parse_args
 
 
 def test_balanced_schedule_has_both_slots():
@@ -62,3 +62,12 @@ def test_unknown_domains_are_accepted_only_for_general_evaluation():
         pass
     else:
         raise AssertionError("expert checkpoint accepted an unseen domain")
+
+
+def test_explicit_negotiator_save_path_is_used_directly(tmp_path):
+    model_dir = tmp_path / "case1" / "models" / "general" / "RLBOASelfPlay_Negotiator"
+    args = parse_args([
+        "--issue", "Laptop", "Car", "--agents", "Boulware", "Linear",
+        "--model-type", "general", "--save-path", str(model_dir),
+    ])
+    assert model_directory(args, args.issue, args.agents) == model_dir

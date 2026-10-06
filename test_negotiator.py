@@ -135,8 +135,8 @@ def evaluate(args):
     temporary.replace(manifest_path)
     if args.export_root:
         target = (
-            Path(args.export_root) / f"seed-{args.seed}" / args.case / "evaluation" /
-            args.model_type / pair / args.domain / args.case / output.name
+            Path(args.export_root) / args.model_type / pair / args.domain /
+            args.case / output.name
         )
         target.parent.mkdir(parents=True, exist_ok=True)
         shutil.copyfile(output, target)

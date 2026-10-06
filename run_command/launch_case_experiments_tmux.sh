@@ -4,8 +4,8 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 MODE="${MODE:-train}"
-GPU_IDS_TEXT="${GPU_IDS:-0 1 2}"
-CONTAINER_NAMES_TEXT="${CONTAINER_NAMES:-selfplay-rlboa-training-gpu0 selfplay-rlboa-training-gpu1 selfplay-rlboa-training-gpu2}"
+GPU_IDS_TEXT="${GPU_IDS:-0 1}"
+CONTAINER_NAMES_TEXT="${CONTAINER_NAMES:-selfplay-rlboa-training-gpu0 selfplay-rlboa-training-gpu1}"
 RESULTS_ROOT="${RESULTS_ROOT:-$PROJECT_DIR/results}"
 
 read -r -a GPU_IDS_ARRAY <<< "$GPU_IDS_TEXT"
@@ -50,7 +50,7 @@ for ((shard = 0; shard < SHARD_COUNT; shard++)); do
   gpu_id="${GPU_IDS_ARRAY[$shard]}"
   container="${CONTAINER_NAMES_ARRAY[$shard]}"
   log="$RESULTS_ROOT/experiment_logs/${LOG_PREFIX}-gpu${gpu_id}.log"
-  command="docker exec --workdir '$PROJECT_DIR' -e CUDA_VISIBLE_DEVICES=0 -e SHARD_INDEX=$shard -e SHARD_COUNT=$SHARD_COUNT -e RESULTS_ROOT='$RESULTS_ROOT' '$container' bash '$SCRIPT' 2>&1 | tee -a '$log'"
+  command="docker exec --workdir '$PROJECT_DIR' -e HOME=/home/nakata -e USER=nakata -e LOGNAME=nakata -e MPLCONFIGDIR=/tmp/matplotlib -e CUDA_VISIBLE_DEVICES=0 -e SHARD_INDEX=$shard -e SHARD_COUNT=$SHARD_COUNT -e RESULTS_ROOT='$RESULTS_ROOT' '$container' bash '$SCRIPT' 2>&1 | tee -a '$log'"
   if (( shard == 0 )); then
     tmux new-session -d -s "$SESSION_NAME" -n "gpu${gpu_id}" "$command"
   else

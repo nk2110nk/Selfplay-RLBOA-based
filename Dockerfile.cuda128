@@ -1,0 +1,12 @@
+FROM alpha-nego:cu128
+
+USER root
+WORKDIR /home/nakata/Selfplay-RLBOA-based
+
+COPY requirements.cuda128.txt /tmp/rlboa-requirements.txt
+RUN rm -rf /opt/conda/lib/python3.10/site-packages/numpy \
+        /opt/conda/lib/python3.10/site-packages/numpy-*.dist-info \
+    && python -m pip install --no-cache-dir "numpy==1.26.4" \
+    && python -m pip install --no-cache-dir -r /tmp/rlboa-requirements.txt
+
+CMD ["sleep", "infinity"]

@@ -118,9 +118,12 @@ def model_directory(args, issues, agents):
     if args.resume:
         path = Path(args.resume).resolve()
         return path if path.is_dir() else path.parent
+    root = Path(args.save_path)
+    if root.name == "RLBOASelfPlay_Negotiator":
+        return root
     pair = f"{agents[0]}-{agents[1]}" if len(agents) == 2 else "-".join(agents)
     domain = issues[0] if args.model_type == "expert" else "general"
-    return (Path(args.save_path) / f"seed-{args.seed}" / args.case / "models" /
+    return (root / f"seed-{args.seed}" / args.case / "models" /
             args.model_type / pair / domain / "RLBOASelfPlay_Negotiator")
 
 

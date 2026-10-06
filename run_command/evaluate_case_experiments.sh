@@ -69,7 +69,8 @@ run_evaluation() {
   local checkpoint="$model_dir/checkpoint.zip"
   local pair="$agent0-$agent1"
   local file_name="$domain-$pair-dF-nF.tsv"
-  local export_file="$RESULTS_ROOT/seed-$SEED/$case_name/evaluation/$model_type/$pair/$domain/$case_name/$file_name"
+  local export_root="$RESULTS_ROOT/$case_name/evaluation"
+  local export_file="$export_root/$model_type/$pair/$domain/$case_name/$file_name"
   if [[ ! -f "$checkpoint" && "$DRY_RUN" != "1" ]]; then
     echo "Missing checkpoint: $checkpoint" >&2
     exit 1
@@ -95,7 +96,7 @@ run_evaluation() {
     --device "$DEVICE"
     --no-deterministic
     --no-noise
-    --export-root "$RESULTS_ROOT"
+    --export-root "$export_root"
   )
   echo "[job $job_index] evaluate: $model_type $case_name $domain $pair"
   if [[ "$DRY_RUN" == "1" ]]; then
@@ -109,7 +110,6 @@ run_evaluation() {
 
 job_index=0
 handled_jobs=0
-general_pair="$(IFS=-; echo "${AGENT_LIST[*]}")"
 
 for case_name in "${CASE_LIST[@]}"; do
   for domain in "${KNOWN_DOMAINS[@]}"; do
@@ -118,7 +118,7 @@ for case_name in "${CASE_LIST[@]}"; do
         agent0="${AGENT_LIST[$i]}"
         agent1="${AGENT_LIST[$j]}"
         pair="$agent0-$agent1"
-        model_dir="$RESULTS_ROOT/seed-$SEED/$case_name/models/expert/$pair/$domain/RLBOASelfPlay_Negotiator"
+        model_dir="$RESULTS_ROOT/$case_name/models/expert/$pair/$domain/RLBOASelfPlay_Negotiator"
         run_evaluation "$job_index" "$model_dir" expert "$case_name" \
           "$domain" "$agent0" "$agent1"
         job_index=$((job_index + 1))
@@ -126,7 +126,7 @@ for case_name in "${CASE_LIST[@]}"; do
     done
   done
 
-  model_dir="$RESULTS_ROOT/seed-$SEED/$case_name/models/general/$general_pair/general/RLBOASelfPlay_Negotiator"
+  model_dir="$RESULTS_ROOT/$case_name/models/general/RLBOASelfPlay_Negotiator"
   for domain in "${ALL_DOMAINS[@]}"; do
     for ((i = 0; i < ${#AGENT_LIST[@]}; i++)); do
       for ((j = i; j < ${#AGENT_LIST[@]}; j++)); do
