@@ -1,4 +1,4 @@
-FROM alpha-nego:cu128
+FROM selfplay-transformer-cases:latest
 
 USER root
 WORKDIR /home/nakata/Selfplay-RLBOA-based
